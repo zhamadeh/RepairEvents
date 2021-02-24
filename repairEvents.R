@@ -57,17 +57,35 @@ for (row in 1:length(breakGRanges)){
 }
 
 breaks = merge(as.data.frame(breakGRanges),summary,by="gene")
-breaks$alleleFreq=round(((breaks$freq/breaks$`n()`)*100),digits = 2)
+breaks$alleleFreq=round(((breaks$freq/breaks$`n()`)*100),digits = 0)
+
 
 inversions <- breakGRanges[breakGRanges$allele_freq>filterFrequency,]
 breaks <- breakGRanges[breakGRanges$allele_freq<filterFrequency,]
 breaks <- as.data.frame(breaks)
 breaks <- filter(breaks,width<1000000)
 
-ggplot(summary,aes(gene,`n()`))+geom_point()+
-  geom_boxplot()
+write.table(test,"test.txt",sep = "\t",col.names = T,row.names = F,quote=F)
+write.table(breaks,"breaks.txt",sep = "\t",col.names = T,row.names = F,quote=F)
+recurring=filter(breaks,alleleFreq > 25)
+recurring$alleleFreq<-as.factor(recurring$alleleFreq)
 
-ggplot(breaks)+geom_density(aes(alleleFreq)) + facet_wrap(~gene)
+i=levels(recurring$gene)[1]
+j=levels(tmp$alleleFreq)[1]
+for (i in levels(breaks$gene)){
+  tmp <- filter(recurring,gene==i)
+  for (j in levels(tmp$alleleFreq)){
+    tmp2 <- filter(tmp, alleleFreq==j)
+    vec = tmp2$seqnames
+    chr <- names(table(vec))[as.vector(table(vec))==max(table(vec))]
+    tmp2 <- filter(tmp2,seqnames==chr)
+    
+  }
+}
+
+
+
+
 
 test <-  filter(breaks,gene=="BLM/RECQL5" & alleleFreq >57 & alleleFreq<75)
 
