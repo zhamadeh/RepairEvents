@@ -1,0 +1,23 @@
+##gff-version 3
+##source-version rtracklayer 1.42.2
+##date 2021-02-25
+chr11	rtracklayer	sequence_feature	107466855	107482134	.	.	.	filenames=blm-1-single-c5-w19-3d6_S119_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107401279	107465563	.	.	.	filenames=blm-1-single-c5-w31-3d6_S131_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107476404	107490893	.	.	.	filenames=blm-1-single-c5-w41-3d6_S141_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107425673	107465943	.	.	.	filenames=blm-1-single-c5-w42-3d6_S142_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107254126	107503635	.	.	.	filenames=blm-1-single-c5-w47-3d6_S147_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107414588	107476368	.	.	.	filenames=blm-1-single-c9-w19-3d6_S315_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107466974	107467417	.	.	.	filenames=blm-1-single-c9-w31_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107518485	107521467	.	.	.	filenames=blm-1-single-c9-w33_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107253406	107582826	.	.	.	filenames=blm-1-single-c9-w35-3d6_S331_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107464150	107464319	.	.	.	filenames=blm-1-single-f5-r1-c1_S1_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107436601	107469702	.	.	.	filenames=blm-1-single-f5-r1-c3_S3_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107419546	107496350	.	.	.	filenames=blm-1-single-f5-r3-c1_S15_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107578784	107587688	.	.	.	filenames=blm-1-single-f5-r6-c5_S40_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107720393	107724688	.	.	.	filenames=blm-1-single-f6-r2-c1_S57_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107559813	107568254	.	.	.	filenames=blm-1-single-f6-r6-c4_S88_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107424000	107472482	.	.	.	filenames=blm-1-single-f7-r5-c2_S128_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107474993	107475163	.	.	.	filenames=blm-1-single-f7-r5-c5_S131_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107448128	107467279	.	.	.	filenames=blm-1-single-f7-r6-c3_S136_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107485674	107507535	.	.	.	filenames=blm-1-single-f7-r6-c4_S137_.trimmed.mdup.bam.RData
+chr11	rtracklayer	sequence_feature	107471186	107474694	.	.	.	filenames=blm-1-single-f7-r7-c1_S141_.trimmed.mdup.bam.RData
