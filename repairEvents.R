@@ -4,8 +4,12 @@
 library(tidyverse)
 library(GenomicRanges)
 library(breakpointR)
+<<<<<<< HEAD
+library(ggpmisc)
+=======
 library(rtracklayer)
 library(doParallel)
+>>>>>>> f11662390be97ee330ea3ba6f2e74779b9cfd8d0
 
 ################################################
             # Data #
@@ -194,6 +198,28 @@ for (i in levels(recurring$gene)){
   }
 }
 
+<<<<<<< HEAD
+p = ggplot(r)+geom_density(aes(alleleFreq),bw=0.5)
+pb <- ggplot_build(p)
+
+p + stat_peaks(
+  data = pb[['data']][[1]], # take a look at this object
+  aes(x = x, y = density),
+  colour = "red",
+  size = 3,ignore_threshold = 0.00001
+)+ stat_peaks(
+  data = pb[['data']][[1]], # take a look at this object
+  aes(x = x, y = density),
+  colour = "red",
+  size = 6,
+  geom="text",
+  vjust=0.8,
+  hjust = -0.3, angle = 90,ignore_threshold = 0.00001
+)+ #ylim(0,(max(density(test$freq)$y+0.08))) +
+  theme_classic() +xlab("Frequency")+
+  theme(text = element_text(size = 25))+
+  ylab("Density")
+=======
 stopTimedMessage(ptm)
 
 
@@ -209,4 +235,5 @@ stopCluster(cl)
 stopTimedMessage(ptm)
 
 
+>>>>>>> f11662390be97ee330ea3ba6f2e74779b9cfd8d0
 
