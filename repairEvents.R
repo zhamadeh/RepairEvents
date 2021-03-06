@@ -90,6 +90,8 @@ breaks <- read.table("DATA/breaks.txt",header=T)
                   # functions #
 ################################################
 
+i=levels(recurring$gene)[1]
+j=levels(tmp$alleleFreq)[1]
 
 repairER <- function(i, recurring, breaks){
   tmp <- filter(recurring,gene==i)
@@ -121,7 +123,7 @@ repairER <- function(i, recurring, breaks){
         
         file.copy(files2transfer,datapath)
         
-        files2plot=paste0("DATA/browserfiles/",levels(tmp3$filenames))
+        files2plot=paste0("DATA/rdata/",levels(tmp3$filenames))
         plotBreakpointsPerChr(files2plot,plotspath = plotspath,chromosomes = c(chr))
       }
     }
@@ -143,6 +145,10 @@ stopTimedMessage <- function(ptm) {
   time <- proc.time() - ptm
   message(" ", round(time[3],2), "s")
   
+}
+
+for (level in levels(recurring$gene)){
+  repairER(level,recurring,breaks)
 }
 
 ################################################
