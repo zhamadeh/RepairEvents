@@ -1,0 +1,2 @@
+gene	perc	n	resolution
+BLM	100	20	50168.1

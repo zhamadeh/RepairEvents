@@ -1,0 +1,4 @@
+gene	perc	n	resolution
+BLM	12.5	1	431270.125
+BLM/RECQL5	62.5	5	431270.125
+WT	25	2	431270.125
