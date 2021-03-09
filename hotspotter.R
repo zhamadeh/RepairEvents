@@ -125,9 +125,12 @@ breakpointHotspotter <- function(breaks.all.files){
 # One summary file for all inversions, each row:
   ## chr, mean(start), mean(end), mean(width), # of libraries, % BLM, % RECQL5, % BLM-RECQL5, % WT 
 
-savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE){
+
+
+savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE,numOfLibsPerGene=numLibsPerGene,normalize=F){
   
   # Directory for creating file structure
+  
   if (!file.exists(hotpath) ) { dir.create(hotpath)}
   
   # Count corresponds to a unique inversion so convert to factor for easier iterating
@@ -136,7 +139,7 @@ savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE){
   hotspots$ID <- as.factor(hotspots$ID)
   
   # Initialize empty dataframe for summary
-  summary <- data.frame(chr=c(),start= c(),end=c(), width=c(),n=c(),perc=c(),BLM=c(),RECQL5=c(),BLM_RECQL5=c(),WT=c())
+  summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c(),BLM=c(),RECQL5=c(),BLM_RECQL5=c(),WT=c())
   
   # Iterate through each level of count (unique inversion) and 1) filter 2) summarize 3) save 4) plot
   
@@ -184,8 +187,8 @@ savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE){
     if (!file.exists(readsdatapath) ) { dir.create(readsdatapath)}
     
     bed=tmp
-    export(bed,paste0(datapath,"breakpoints.bed"),format = "gff3")
-    write.table(as.data.frame(perc),paste0(datapath,"genotype.txt"),row.names = F,col.names = T,quote = F,sep="\t")
+    #export(bed,paste0(datapath,"breakpoints.bed"),format = "gff3")
+    #write.table(as.data.frame(perc),paste0(datapath,"genotype.txt"),row.names = F,col.names = T,quote = F,sep="\t")
     #export(bed,paste0(datapath,"breakpoints.bed"),format = "bed")
     
     if (length(tmp$ID)>25){
@@ -193,31 +196,63 @@ savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE){
     } else {
       files2transfer=paste0("DATA/browserfiles/",tmp$ID,"_reads.bed.gz")
     }
-    file.copy(files2transfer,readsdatapath)
+
     
-    if ("BLM" %in% perc$gene){
-      BLM=as.numeric(perc[perc$gene=="BLM",2])
-    } else { BLM=0 }
-    if ("RECQL5" %in% perc$gene){
-      RECQL5=as.numeric(perc[perc$gene=="RECQL5",2])
-    } else { RECQL5=0 }
-    if ("BLM/RECQL5" %in% perc$gene){
-      BLM_RECQL5=as.numeric(perc[perc$gene=="BLM/RECQL5",2])
-    } else { BLM_RECQL5=0 }
-    if ("WT" %in% perc$gene){
-      WT=as.numeric(perc[perc$gene=="WT",2])
-    } else { WT=0 }
+    numLibs=tmp %>% group_by(gene)%>%summarize(numLibs=length(levels(droplevels(ID))))
+    if(normalize==FALSE){
+      if ("BLM" %in% numLibs$gene){
+        BLM=as.numeric((numLibs[numLibs$gene=="BLM",2]))
+      } else { BLM=0 }
+      if ("RECQL5" %in% numLibs$gene){
+        RECQL5=as.numeric((numLibs[numLibs$gene=="RECQL5",2]))
+      } else { RECQL5=0 }
+      if ("BLM/RECQL5" %in% numLibs$gene){
+        BLM_RECQL5=as.numeric((numLibs[numLibs$gene=="BLM/RECQL5",2]))
+      } else { BLM_RECQL5=0 }
+      if ("WT" %in% numLibs$gene){
+        WT=as.numeric((numLibs[numLibs$gene=="WT",2]))
+      } else { WT=0 }
+    } else if(normalize=="By_Library"){
+      if ("BLM" %in% numLibs$gene){
+        BLM=as.numeric((numLibs[numLibs$gene=="BLM",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="BLM",2])
+      } else { BLM=0 }
+      if ("RECQL5" %in% numLibs$gene){
+        RECQL5=as.numeric((numLibs[numLibs$gene=="RECQL5",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="RECQL5",2])
+      } else { RECQL5=0 }
+      if ("BLM/RECQL5" %in% numLibs$gene){
+        BLM_RECQL5=as.numeric((numLibs[numLibs$gene=="BLM/RECQL5",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="BLM/RECQL5",2])
+      } else { BLM_RECQL5=0 }
+      if ("WT" %in% numLibs$gene){
+        WT=as.numeric((numLibs[numLibs$gene=="WT",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="WT",2])
+      } else { WT=0 }
+    } else  if (normalize=="to_100"){
+      if ("BLM" %in% perc$gene){
+        BLM=as.numeric((perc[perc$gene=="BLM",2]))
+      } else { BLM=0 }
+      if ("RECQL5" %in% perc$gene){
+        RECQL5=as.numeric((perc[perc$gene=="RECQL5",2]))
+      } else { RECQL5=0 }
+      if ("BLM/RECQL5" %in% perc$gene){
+        BLM_RECQL5=as.numeric((perc[perc$gene=="BLM/RECQL5",2]))
+      } else { BLM_RECQL5=0 }
+      if ("WT" %in% perc$gene){
+        WT=as.numeric((perc[perc$gene=="WT",2]))
+      } else { WT=0 }
+    }
     
-    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end), width=mean(tmp$width),n=nrow(tmp),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
+    
+    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=count, width=mean(tmp$width),n=nrow(tmp),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
     summary <- rbind(summary,row)
     
     if (printing){
+      file.copy(files2transfer,readsdatapath)
       files2plot=paste0("DATA/rdata/",levels(tmp$ID),".RData")
       plotBreakpointsPerChr(files2plot,plotspath = datapath,chromosomes = c(chr))
     }
   }
   return(summary)
 }
+
 
 
 ################################################
@@ -229,7 +264,9 @@ breaks.all.files <- collectBreaksAllFiles(datapath="DATA/rdata/")
 
 hotspots <- breakpointHotspotter(breaks.all.files)
 
-summary2 <- savingAndPrinting(hotspots,printing = F)
+summary <- savingAndPrinting(hotspots,hotpath="SCE_HOTSPOTS",printing = F,numOfLibsPerGene,normalize="By_Library")
+summary <- savingAndPrinting(hotspots,hotpath="SCE_HOTSPOTS",printing = F,numOfLibsPerGene,normalize=FALSE)
+summary <- savingAndPrinting(hotspots,hotpath="SCE_HOTSPOTS",printing = F,numOfLibsPerGene,normalize="to_100")
 
 
 ################################################
@@ -248,21 +285,63 @@ for (gene in c("BLM","BLM_RECQL5","RECQL5","WT")){
   print(perc)
 }
 
+
+summary$count<- seq(1:nrow(summary))
+summarize <- gather(summary, gene,freq,c(BLM,RECQL5,BLM_RECQL5,WT))
+summarize$chr<-factor(summarize$chr,levels=c("chr1"  ,"chr2" ,"chr3" , "chr4"  ,"chr5" , "chr7",  "chr8" , "chr9"  ,"chr10", "chr11" ,"chr12" ,"chr13", "chr14"
+                      ,"chr15" ,"chr16", "chr17", "chr18", "chr19" , "chr20", "chr21", "chr22", "chrX"))
+
+summarize = summarize[order(summarize$chr),]
+summarize$cat= as.factor(paste0(summarize$chr,"-",summarize$count))
+
+summarize$cat = factor(summarize$cat,levels=c( "chr1-1" ,"chr1-2", "chr2-3" ,  "chr2-4" ,  "chr3-5" ,  "chr4-6" ,  "chr5-7" ,  "chr5-8"  , "chr7-10",  "chr7-11" , "chr7-9"   ,"chr8-12" 
+                                               ,"chr8-13" , "chr9-14" , "chr9-15" , "chr9-16" 
+                                              , "chr10-17" , "chr11-18", "chr11-19" ,  "chr12-20", "chr13-21", "chr14-22", "chr15-23" ,"chr15-24" ,"chr15-25"
+                                             ,"chr15-26" ,"chr16-27", "chr16-28" ,"chr16-29", "chr17-30", "chr18-31", "chr19-32", "chr19-33", "chr20-34" ,"chr21-35" ,"chr22-36"
+                                             ,"chr22-37" ,"chrX-38"  ,"chrX-39" ))
+
+ggplot(summarize)+geom_col(aes(cat,freq,fill=gene))+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+  labs(y="Number of events/library",x="Hotspots")
+ggplot(summarize)+geom_col(aes(chr,freq,fill=gene))+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+  labs(y="Number of events",x="Hotspots")
+summarize$chr <- as.factor(summarize$chr)
+
+
+
+
+
+
 ggplot(summary)+ geom_bar(aes(chr,fill="blue"))+
   geom_bar(cfs,mapping=aes(V1,fill="green"))+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
-cfs <-read.table("DATA/CFS_human.bed") %>% select(c(V1,V2,V3))
+cfs <-read.table("DATA/CFS_human.bed",fill=T) %>% select(c(V1,V2,V3))
 colnames(cfs)<- c("chr","start","end")
 cfs$type="CFS"
+cfs$chr=factor(cfs$chr,levels=c("chr1"  ,"chr2" ,"chr3" , "chr4"  ,"chr5" ,"chr6", "chr7",  "chr8" , "chr9"  ,"chr10", "chr11" ,"chr12" ,"chr13", "chr14"
+                                      ,"chr15" ,"chr16", "chr17", "chr18", "chr19" , "chr20", "chr22", "chrx"))
+
 sum=select(summary,c(chr,start,end))
 sum$type="BREAK_HOTSPOT"
-s=rbind(sum,cfs)
+sum$chr=factor(sum$chr,levels=c("chr1"  ,"chr2" ,"chr3" , "chr4"  ,"chr5" , "chr7",  "chr8" , "chr9"  ,"chr10", "chr11" ,"chr12" ,"chr13", "chr14"
+                                      ,"chr15" ,"chr16", "chr17", "chr18", "chr19" , "chr20", "chr21", "chr22", "chrX"))
 
-ggplot(s)+ geom_bar(aes(chr,fill=type))+
+s=rbind(sum,cfs)
+s = as.data.frame(s %>% group_by(type,chr)%>% summarize(n=n()))
+s[44,2]="chrX"
+s$chr=factor(s$chr,levels=c("chr1"  ,"chr2" ,"chr3" , "chr4"  ,"chr5" ,"chr6", "chr7",  "chr8" , "chr9"  ,"chr10", "chr11" ,"chr12" ,"chr13", "chr14"
+                                      ,"chr15" ,"chr16", "chr17", "chr18", "chr19" , "chr20","chr21", "chr22", "chrx","chrX"))
+
+ggplot()+ geom_bar(s,mapping=aes(chr,n,fill=type),stat="identity",position="identity",alpha=0.9)+
+  
+  #geom_bar(filter(s,type=="BREAK_HOTSPOT"),mapping=aes(chr,n,fill=type),stat="identity")+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
+
+ggplot()+ geom_bar(s,mapping=aes(chr,n,fill=type),stat="identity",position=  position_stack(reverse=T))+
+  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+  labs(x="Chromosome",y="Count")
 
 
 ggplot(summary)+geom_bar(aes(chr,)
 
-
+write.table(summary,"summary.txt",col.names = T,row.names = F, quote = F,sep="\t")

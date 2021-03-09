@@ -4,12 +4,10 @@
 library(tidyverse)
 library(GenomicRanges)
 library(breakpointR)
-<<<<<<< HEAD
 library(ggpmisc)
-=======
 library(rtracklayer)
 library(doParallel)
->>>>>>> f11662390be97ee330ea3ba6f2e74779b9cfd8d0
+
 
 ################################################
             # Data #
@@ -83,11 +81,11 @@ recurring$alleleFreq<-as.factor(recurring$alleleFreq)
 recurring$gene <- as.factor(recurring$gene)
 recurring$alleleFreq<-as.factor(recurring$alleleFreq)
 
-write.table(breaks,"DATA/breaks.txt",quote = F,row.names = F,col.names = T,sep="\t")
-write.table(recurring,"DATA/recurringBreaksCutoff25.txt",quote = F,row.names = F,col.names = T,sep="\t")
+write.table(breaks,"breaks.txt",quote = F,row.names = F,col.names = T,sep="\t")
+write.table(recurring,"recurringBreaksCutoff25.txt",quote = F,row.names = F,col.names = T,sep="\t")
 
-breaks <- read.table("DATA/breaks.txt",header=T)
-breaks <- read.table("DATA/breaks.txt",header=T)
+breaks <- read.table("breaks.txt",header=T)
+recurring <- read.table("recurringBreaksCutoff25.txt",header=T)
 
 
 ################################################
@@ -96,42 +94,74 @@ breaks <- read.table("DATA/breaks.txt",header=T)
 
 i=levels(recurring$gene)[1]
 j=levels(tmp$alleleFreq)[1]
+t=levels(tmp2$seqnames)[1]
 
-repairER <- function(i, recurring, breaks){
-  tmp <- filter(recurring,gene==i)
-  for (j in levels(tmp$alleleFreq)){
-    tmp2 <- filter(tmp, alleleFreq==j)
-    tmp2$seqnames<-droplevels(tmp2$seqnames)
-    for (t in levels(tmp2$seqnames)){
-      chr=t
-      tmp3 <- filter(tmp2,seqnames==chr)
-      if (nrow(tmp3) > 5){
-        message("Found a possible inversion on ", chr," in ", j,"% of ",i," cells.")
+repairER <- function(recurring, breaks){
+  
+  summary=data.frame(chr=c(),start=c(),end=c(),n=c(),freq=c(),blm=c(),recql5=c(),blm_recql5=c(),wt=c())
+  
+  for (level in levels(recurring$gene)){
+
+    tmp <- filter(recurring,gene==level)
+  
+    for (j in levels(tmp$alleleFreq)){
+      
+      tmp2 <- filter(tmp, alleleFreq==j)
+      tmp2$seqnames<-droplevels(tmp2$seqnames)
+      
+      for (t in levels(tmp2$seqnames)){
         
-        tmp3$filenames <- droplevels(tmp3$filenames)
-        
-        plotspath=paste0("PLOTS/",chr,"-",i,"-",j,"-f/")
-        datapath=paste0(plotspath,"data/")
-        
-        if (!file.exists(plotspath) ) { dir.create(plotspath)}
-        if (!file.exists(datapath) ) { dir.create(datapath)}
-        
-        #use tmp2 so you get other breakpoints that were also on the same chromosome
-        tmp4 <- filter(breaks,gene==i)
-        bed <- tmp4 %>% filter(seqnames==chr & filenames %in% tmp3$filenames) %>% select(seqnames,start,end,filenames)
-        bedpath=paste0(plotspath,"breakpoints.bed")
-        export(bed,bedpath,format = "gff3")
-        
-        readsFiles<- tools::file_path_sans_ext(levels(tmp3$filenames))
-        files2transfer=paste0("DATA/browserfiles/",readsFiles,"_reads.bed.gz")
-        
-        file.copy(files2transfer,datapath)
-        
-        files2plot=paste0("DATA/rdata/",levels(tmp3$filenames))
-        plotBreakpointsPerChr(files2plot,plotspath = plotspath,chromosomes = c(chr))
+        chr=t
+        tmp3 <- filter(tmp2,seqnames==chr)
+        if (nrow(tmp3) > 5){
+          message("Found a possible inversion on ", chr," in ", j,"% of ",level," cells.")
+          
+          tmp3$filenames <- droplevels(tmp3$filenames)
+          
+          #plotspath=paste0("PLOTS/",chr,"-",level,"-",j,"-f/")
+          #datapath=paste0(plotspath,"data/")
+          
+          #if (!file.exists(plotspath) ) { dir.create(plotspath)}
+          #if (!file.exists(datapath) ) { dir.create(datapath)}
+          
+          #use tmp2 so you get other breakpoints that were also on the same chromosome
+          #tmp4 <- filter(breaks,gene==level)
+          #bed <- tmp4 %>% filter(seqnames==chr & filenames %in% tmp3$filenames) %>% select(seqnames,start,end,filenames)
+          #bedpath=paste0(plotspath,"breakpoints.bed")
+          #export(bed,bedpath,format = "gff3")
+          
+          #readsFiles<- tools::file_path_sans_ext(levels(tmp3$filenames))
+          #files2transfer=paste0("DATA/browserfiles/",readsFiles,"_reads.bed.gz")
+          
+          #file.copy(files2transfer,datapath)
+          
+          #files2plot=paste0("DATA/rdata/",levels(tmp3$filenames))
+          #plotBreakpointsPerChr(files2plot,plotspath = plotspath,chromosomes = c(chr))
+          #GRanges(breaks)[queryHits(findOverlaps(GRanges(breaks),GRanges(tmp3),type = "any")),]
+          
+          perc <- tmp3 %>% group_by(gene) %>% summarize(perc = round((n()/nrow(tmp3))*100,digits = 1),n=n())
+          perc$resolution = mean(tmp$width)
+          
+          if ("BLM" %in% perc$gene){
+            BLM=as.numeric(perc[perc$gene=="BLM",2])
+          } else { BLM=0 }
+          if ("RECQL5" %in% perc$gene){
+            RECQL5=as.numeric(perc[perc$gene=="RECQL5",2])
+          } else { RECQL5=0 }
+          if ("BLM/RECQL5" %in% perc$gene){
+            BLM_RECQL5=as.numeric(perc[perc$gene=="BLM/RECQL5",2])
+          } else { BLM_RECQL5=0 }
+          if ("WT" %in% perc$gene){
+            WT=as.numeric(perc[perc$gene=="WT",2])
+          } else { WT=0 }
+          
+          row = data.frame(chr=chr, start= mean(tmp3$start),end=mean(tmp3$end),n=nrow(tmp3),freq=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
+          summary <- rbind(summary,row)
+        }
       }
     }
   }
+  return(summary)
 }
 
 startTimedMessage <- function(...) {
@@ -158,6 +188,9 @@ for (level in levels(recurring$gene)){
 ################################################
      # Running functions generate output #
 ################################################
+
+summary=repairER(recurring,breaks)
+summaryBPR <- read.table("summary.txt",header=T)
 
 ptm <- startTimedMessage("Reading file ", bamfile, " ...")
 
@@ -198,7 +231,7 @@ for (i in levels(recurring$gene)){
   }
 }
 
-<<<<<<< HEAD
+
 p = ggplot(r)+geom_density(aes(alleleFreq),bw=0.5)
 pb <- ggplot_build(p)
 
@@ -219,7 +252,7 @@ p + stat_peaks(
   theme_classic() +xlab("Frequency")+
   theme(text = element_text(size = 25))+
   ylab("Density")
-=======
+
 stopTimedMessage(ptm)
 
 
@@ -234,6 +267,4 @@ stopCluster(cl)
 
 stopTimedMessage(ptm)
 
-
->>>>>>> f11662390be97ee330ea3ba6f2e74779b9cfd8d0
 
