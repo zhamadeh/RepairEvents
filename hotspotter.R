@@ -22,7 +22,7 @@ collectBreaksAllFiles <- function(datapath="DATA/rdata/"){
   summaryBreaks <- list()
   n=1
   for (file in files) {
-    message("Reading ... " , file, " ... ",round((n/length(files))*100,"%",digits = 1))
+    message("Reading ... " , basename(file), " ... ",round(  (n/length(files))*100  ,  digits = 1  ) , "%"  )
     n=n+1
     data <- get(load(file))[c('breaks', 'confint','ID')]
     data$breaks$ID <- data$ID
@@ -58,6 +58,9 @@ breakpointHotspotter <- function(breaks.all.files){
   pranges.list <- GenomicRanges::GRangesList()
   hotspots=data.frame()
   count=1
+  
+  df = data.frame(chr=c(),midpoint=c(),density=c(),pvalue=c(),null_midpoints=c(),null_density=c())
+  df_p=data.frame(pval=c(),chrom=c())
   
   for (chrom in seqlevels(gr)) {
     grc <- gr[seqnames(gr)==chrom]
@@ -107,6 +110,29 @@ breakpointHotspotter <- function(breaks.all.files){
         count=count+1
       }
       
+      
+      
+    mp = kde$x
+    ds = kde$y
+    pv = pvalues$pvalue
+    exp = data.frame(mp=mp,ds=ds)
+    exp$type="BREAKPOINTS"
+    exp$p = pv
+    
+    null_mp = kde.r$x
+    null_ds = kde.r$y
+    null = data.frame(mp=null_mp,ds=null_ds)
+    null$type = "NULL"
+    null$p = pv
+    
+    tmp = rbind(exp,null)
+    tmp$chr = chrom
+
+    #tmp2 = data.frame(pvalues=pv)
+    #tmp2$chr = chrom
+    
+    df <- rbind(tmp,df)
+    df_p <- rbind(tmp2,df_p)
     }
     count=count+1
   }
@@ -288,6 +314,49 @@ summary=master()
 ################################################
 
 # THIS IS FOR PLOTTING 
+
+#PREPROCESS
+max_xy <-max(df$ds)
+df$mp_Mb = df$mp/1e+06
+df$chr <- factor(df$chr,levels = c("chr1" , "chr2",  "chr3",  "chr4" , "chr5" , "chr6",  "chr7",  "chr8" , "chr9", "chr10" ,"chr11" ,"chr12" ,"chr13", "chr14", "chr15" ,"chr16" ,"chr17", "chr18","chr19" ,"chr20", "chr21" ,"chr22", "chrX" ))
+
+#PLOTTING
+ggplot(df)+geom_point(aes(mp_Mb,ds,color=type),size=1)+facet_wrap(~chr,scales="free")+
+  #geom_point(aes(mp,p))+facet_wrap(~chr,scales="free")+
+  scale_y_continuous(limits = c(0,max_xy)) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size=20),
+        axis.title =element_text(size=28),
+        text = element_text(size=20),
+        legend.position = c(0.7, 0.07))+
+  labs(y="DENSITY",x="CHROMOSOME POSITION")+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  ggsave("PLOTS/genomicDistributionOfEvents_allChr.png")
+
+ggplot(filter(df,chr=="chr1"))+geom_point(aes(mp_Mb,ds,color=type),size=5)+facet_wrap(~chr,scales="free")+
+  #geom_point(aes(mp,p))+facet_wrap(~chr,scales="free")+
+  #scale_y_continuous(limits = c(0,max_xy)) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size=20),
+        axis.title =element_text(size=28),
+        text = element_text(size=20),
+        legend.position = c(0.7, 0.3))+
+  labs(y="DENSITY",x="CHROMOSOME POSITION")+
+  guides(color = guide_legend(override.aes = list(size=10)))+
+  ggsave("PLOTS/genomicDistributionOfEvents_chr1.png")
+
+  
+
+ggplot(df_p)+geom_density(aes(pvalues))+facet_wrap(~chr,scales="free")
+
+
+
+
+
 
 summary$count<- seq(1:nrow(summary))
 summarize <- gather(summary, gene,freq,c(BLM,RECQL5,BLM_RECQL5,WT))
