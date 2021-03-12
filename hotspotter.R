@@ -20,8 +20,10 @@ collectBreaksAllFiles <- function(datapath="DATA/rdata/"){
   breaks.all.files <- list()
   breaksConfInt.all.files <- list()
   summaryBreaks <- list()
-  
+  n=1
   for (file in files) {
+    message("Reading ... " , file, " ... ",round((n/length(files))*100,"%",digits = 1))
+    n=n+1
     data <- get(load(file))[c('breaks', 'confint','ID')]
     data$breaks$ID <- data$ID
     summaryBreaks[[basename(file)]] <- summarizeBreaks(data)
@@ -127,7 +129,7 @@ breakpointHotspotter <- function(breaks.all.files){
 
 
 
-savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE,numOfLibsPerGene=numLibsPerGene,normalize=F){
+savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,export=F,normalize=F){
   
   # Directory for creating file structure
   
@@ -138,10 +140,13 @@ savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE,numO
   # Also easier for dealing with IDs as factor
   hotspots$ID <- as.factor(hotspots$ID)
   
+  numOfLibsPerGene<-read.table("DATA/numOfLibsPerGene.txt",header=T)
+  
   # Initialize empty dataframe for summary
   summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c(),BLM=c(),RECQL5=c(),BLM_RECQL5=c(),WT=c())
   
   # Iterate through each level of count (unique inversion) and 1) filter 2) summarize 3) save 4) plot
+  hotspots$count<-as.factor(hotspots$count)
   
   for (level in levels(hotspots$count)){
     
@@ -173,7 +178,7 @@ savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE,numO
     
     
     j=round((nrow(tmp)/317)*100,2)
-    message("Found a hotspot on ", chr," in ", j,"% of 317 cells.")
+    message("Found hotspot #",level," on ", chr," in ", nrow(tmp)," cells (",j,"%)")
     
     
     if (perc[which.max(perc$perc),]$perc > 90){
@@ -186,10 +191,12 @@ savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE,numO
     readsdatapath=paste0(hotpath,"/",chr,"-",j,"/reads/")
     if (!file.exists(readsdatapath) ) { dir.create(readsdatapath)}
     
-    bed=tmp
-    #export(bed,paste0(datapath,"breakpoints.bed"),format = "gff3")
-    #write.table(as.data.frame(perc),paste0(datapath,"genotype.txt"),row.names = F,col.names = T,quote = F,sep="\t")
-    #export(bed,paste0(datapath,"breakpoints.bed"),format = "bed")
+    if (export){
+      bed=tmp
+      export(bed,paste0(datapath,"breakpoints.bed"),format = "gff3")
+      write.table(as.data.frame(perc),paste0(datapath,"genotype.txt"),row.names = F,col.names = T,quote = F,sep="\t")
+      export(bed,paste0(datapath,"breakpoints.bed"),format = "bed")
+    }
     
     if (length(tmp$ID)>25){
       files2transfer=paste0("DATA/browserfiles/",tmp$ID[1:25],"_reads.bed.gz")
@@ -241,7 +248,7 @@ savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE,numO
     }
     
     
-    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=count, width=mean(tmp$width),n=nrow(tmp),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
+    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=nrow(tmp),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
     summary <- rbind(summary,row)
     
     if (printing){
@@ -259,32 +266,28 @@ savingAndPrinting <- function(hotspots,hotpath="SCE_HOTSPOTS",printing=TRUE,numO
         # Running Core Functions #
 ################################################
 
+master <- function(){
+  breaks.all.files <- collectBreaksAllFiles(datapath="DATA/rdata/")
+  
+  hotspots <- breakpointHotspotter(breaks.all.files)
+  
+  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = T,normalize="By_Library",export = T)
+  #summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = F,normalize=FALSE,export = F)
+  #summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = F,normalize="to_100")
+  
+  message("\nI found ",nrow(summary), " inversions.\n")
+  message("\nThe average resolution is ", round(mean(summary$width),digits = -3),".\n")
+  
+  write.table(summary,"summary.txt",col.names = T,row.names = F, quote = F,sep="\t")
+}
 
-breaks.all.files <- collectBreaksAllFiles(datapath="DATA/rdata/")
-
-hotspots <- breakpointHotspotter(breaks.all.files)
-
-summary <- savingAndPrinting(hotspots,hotpath="SCE_HOTSPOTS",printing = F,numOfLibsPerGene,normalize="By_Library")
-summary <- savingAndPrinting(hotspots,hotpath="SCE_HOTSPOTS",printing = F,numOfLibsPerGene,normalize=FALSE)
-summary <- savingAndPrinting(hotspots,hotpath="SCE_HOTSPOTS",printing = F,numOfLibsPerGene,normalize="to_100")
-
+summary=master()
 
 ################################################
             # Summary #
 ################################################
 
-# Summarize findings from output of savingAndPrinting() that gives information about all inversions (size, allele frequencies etc.)
-
-message("\nI found ",nrow(summary), " inversions.\n")
-message("\nThe average resolution is ", round(mean(summary$width),digits = -3),".\n")
-
-gene="BLM"
-for (gene in c("BLM","BLM_RECQL5","RECQL5","WT")){
-  message(gene," ",sum((summary[,gene]/100)*summary$n))
-  perc = (sum((summary[,gene]/100)*summary$n)/sum(summary$n)) * 100
-  print(perc)
-}
-
+# THIS IS FOR PLOTTING 
 
 summary$count<- seq(1:nrow(summary))
 summarize <- gather(summary, gene,freq,c(BLM,RECQL5,BLM_RECQL5,WT))
@@ -311,9 +314,6 @@ summarize$chr <- as.factor(summarize$chr)
 
 
 
-ggplot(summary)+ geom_bar(aes(chr,fill="blue"))+
-  geom_bar(cfs,mapping=aes(V1,fill="green"))+
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
 
 cfs <-read.table("DATA/CFS_human.bed",fill=T) %>% select(c(V1,V2,V3))
 colnames(cfs)<- c("chr","start","end")
@@ -332,16 +332,11 @@ s[44,2]="chrX"
 s$chr=factor(s$chr,levels=c("chr1"  ,"chr2" ,"chr3" , "chr4"  ,"chr5" ,"chr6", "chr7",  "chr8" , "chr9"  ,"chr10", "chr11" ,"chr12" ,"chr13", "chr14"
                                       ,"chr15" ,"chr16", "chr17", "chr18", "chr19" , "chr20","chr21", "chr22", "chrx","chrX"))
 
-ggplot()+ geom_bar(s,mapping=aes(chr,n,fill=type),stat="identity",position="identity",alpha=0.9)+
-  
-  #geom_bar(filter(s,type=="BREAK_HOTSPOT"),mapping=aes(chr,n,fill=type),stat="identity")+
-  theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))
-
 ggplot()+ geom_bar(s,mapping=aes(chr,n,fill=type),stat="identity",position=  position_stack(reverse=T))+
   theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
   labs(x="Chromosome",y="Count")
 
 
-ggplot(summary)+geom_bar(aes(chr,)
 
-write.table(summary,"summary.txt",col.names = T,row.names = F, quote = F,sep="\t")
+
+

@@ -4,11 +4,15 @@
 ## This way you can upload the one file to the UCSC genome browser instead of uploading all of them one at a time (killer I know)
 
 
-for file in SCE_HOTSPOTS/*/
+for file in HOTSPOT_EVENTS/*/
 do
-  dir=($file)
+  #echo $file
+  dir=$file
   base="reads/"
   cat=$dir$base
-  rm $dir/cat_reads.bed
-  #cat $cat/* > $dir/cat_reads.bed.gz
+  #echo $cat/*
+  #rm $dir/cat_reads.bed
+  cat $cat/* > $dir/cat_reads.bed.gz
+  rm $cat/*
+  
 done
