@@ -132,7 +132,7 @@ breakpointHotspotter <- function(breaks.all.files){
     #tmp2$chr = chrom
     
     df <- rbind(tmp,df)
-    df_p <- rbind(tmp2,df_p)
+    #df_p <- rbind(tmp2,df_p)
     }
     count=count+1
   }
@@ -155,7 +155,7 @@ breakpointHotspotter <- function(breaks.all.files){
 
 
 
-savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,export=F,normalize=F){
+savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,export=F,normalize=F,cfs=T){
   
   # Directory for creating file structure
   
@@ -166,7 +166,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
   # Also easier for dealing with IDs as factor
   hotspots$ID <- as.factor(hotspots$ID)
   
-  numOfLibsPerGene<-read.table("DATA/numOfLibsPerGene.txt",header=T)
+  numOfLibsPerGene<-read.table("../SV_hotspot_backupCopies/Structural_Variant_Hotspotter-2/DATA/numOfLibsPerGene.txt",header=T)
   
   # Initialize empty dataframe for summary
   summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c(),BLM=c(),RECQL5=c(),BLM_RECQL5=c(),WT=c())
@@ -175,6 +175,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
   hotspots$count<-as.factor(hotspots$count)
   
   for (level in levels(hotspots$count)){
+    message("Level: ",level)
     
     # 1) FILTER
     tmp <- filter(hotspots, count==level)
@@ -203,7 +204,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     perc$resolution = mean(tmp$width)
     
     
-    j=round((nrow(tmp)/317)*100,2)
+    j=round((length(levels(droplevels(tmp$ID)))/317)*100,2)
     message("Found hotspot #",level," on ", chr," in ", nrow(tmp)," cells (",j,"%)")
     
     
@@ -232,6 +233,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
 
     
     numLibs=tmp %>% group_by(gene)%>%summarize(numLibs=length(levels(droplevels(ID))))
+    
     if(normalize==FALSE){
       if ("BLM" %in% numLibs$gene){
         BLM=as.numeric((numLibs[numLibs$gene=="BLM",2]))
@@ -274,13 +276,17 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     }
     
     
-    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=nrow(tmp),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
+    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=length(levels(droplevels(tmp$ID))),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
     summary <- rbind(summary,row)
     
     if (printing){
       file.copy(files2transfer,readsdatapath)
       files2plot=paste0("DATA/rdata/",levels(tmp$ID),".RData")
       plotBreakpointsPerChr(files2plot,plotspath = datapath,chromosomes = c(chr))
+    }
+    if (cfs){
+      file.copy(paste0("DATA/fragile_site_bed/",chr,"_fragile_site.bed"),datapath)
+      
     }
   }
   return(summary)
@@ -297,9 +303,10 @@ master <- function(){
   
   hotspots <- breakpointHotspotter(breaks.all.files)
   
-  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = T,normalize="By_Library",export = T)
-  #summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = F,normalize=FALSE,export = F)
-  #summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = F,normalize="to_100")
+  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = F,normalize="By_Library",export = F)
+  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = F,normalize=FALSE,export = F)
+  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = T,normalize=FALSE,export = T)
+  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = F,normalize="to_100")
   
   message("\nI found ",nrow(summary), " inversions.\n")
   message("\nThe average resolution is ", round(mean(summary$width),digits = -3),".\n")
@@ -308,6 +315,8 @@ master <- function(){
 }
 
 summary=master()
+
+
 
 ################################################
             # Summary #
@@ -321,7 +330,7 @@ df$mp_Mb = df$mp/1e+06
 df$chr <- factor(df$chr,levels = c("chr1" , "chr2",  "chr3",  "chr4" , "chr5" , "chr6",  "chr7",  "chr8" , "chr9", "chr10" ,"chr11" ,"chr12" ,"chr13", "chr14", "chr15" ,"chr16" ,"chr17", "chr18","chr19" ,"chr20", "chr21" ,"chr22", "chrX" ))
 
 #PLOTTING
-ggplot(df)+geom_point(aes(mp_Mb,ds,color=type),size=1)+facet_wrap(~chr,scales="free")+
+p = ggplot(df)+geom_point(aes(mp_Mb,ds,color=type),size=1)+facet_wrap(~chr,scales="free")+
   #geom_point(aes(mp,p))+facet_wrap(~chr,scales="free")+
   scale_y_continuous(limits = c(0,max_xy)) +
   theme(axis.text.y = element_blank(),
@@ -332,31 +341,57 @@ ggplot(df)+geom_point(aes(mp_Mb,ds,color=type),size=1)+facet_wrap(~chr,scales="f
         text = element_text(size=20),
         legend.position = c(0.7, 0.07))+
   labs(y="DENSITY",x="CHROMOSOME POSITION")+
-  guides(color = guide_legend(override.aes = list(size=10)))+
-  ggsave("PLOTS/genomicDistributionOfEvents_allChr.png")
+  guides(color = guide_legend(override.aes = list(size=10)))#+
+  #ggsave("PLOTS/genomicDistributionOfEvents_allChr.png")
 
-ggplot(filter(df,chr=="chr1"))+geom_point(aes(mp_Mb,ds,color=type),size=5)+facet_wrap(~chr,scales="free")+
+  
+  
+p = ggplot(filter(df,chr=="chr1"))+geom_point(aes(mp_Mb,ds,color=type),size=5)+facet_wrap(~chr,scales="free")+
   #geom_point(aes(mp,p))+facet_wrap(~chr,scales="free")+
   #scale_y_continuous(limits = c(0,max_xy)) +
   theme(axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         legend.title = element_blank(),
-        legend.text = element_text(size=20),
+        legend.text = element_text(size=15),
         axis.title =element_text(size=28),
         text = element_text(size=20),
         legend.position = c(0.7, 0.3))+
   labs(y="DENSITY",x="CHROMOSOME POSITION")+
-  guides(color = guide_legend(override.aes = list(size=10)))+
+  guides(color = guide_legend(override.aes = list(size=5)))#+
   ggsave("PLOTS/genomicDistributionOfEvents_chr1.png")
 
-  
+p=ggplot(filter(df,chr=="chr1"))+geom_line(aes(mp_Mb,ds,color=type),size=4)+facet_wrap(~chr,scales="free")+
+  #geom_point(aes(mp,p))+facet_wrap(~chr,scales="free")+
+  #scale_y_continuous(limits = c(0,max_xy)) +
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        legend.title = element_blank(),
+        legend.text = element_text(size=18),
+        axis.title =element_text(size=28),
+        text = element_text(size=20),
+        legend.position = c(0.07, 0.7))+
+  labs(y="DENSITY",x="CHROMOSOME POSITION")+
+  guides(color = guide_legend(override.aes = list(size=8)))
 
-ggplot(df_p)+geom_density(aes(pvalues))+facet_wrap(~chr,scales="free")
+
+p <- p +
+  theme(
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent") # get rid of legend panel bg
+  ) 
+ggsave(p, filename = "PLOTS/tr_tst2_eventsPerChrom.png",  bg = "transparent")
 
 
+summary2 = read.table("summary.txt",header=T)
 
-
-
+summary3=summary
+summary=summary2
+summary4=summary
+summary=summary3
 
 summary$count<- seq(1:nrow(summary))
 summarize <- gather(summary, gene,freq,c(BLM,RECQL5,BLM_RECQL5,WT))
@@ -364,19 +399,30 @@ summarize$chr<-factor(summarize$chr,levels=c("chr1"  ,"chr2" ,"chr3" , "chr4"  ,
                       ,"chr15" ,"chr16", "chr17", "chr18", "chr19" , "chr20", "chr21", "chr22", "chrX"))
 
 summarize = summarize[order(summarize$chr),]
+summarize$chr<-as.character(summarize$chr)
+summarize$count<-as.character(summarize$count)
 summarize$cat= as.factor(paste0(summarize$chr,"-",summarize$count))
 
 summarize$cat = factor(summarize$cat,levels=c( "chr1-1" ,"chr1-2", "chr2-3" ,  "chr2-4" ,  "chr3-5" ,  "chr4-6" ,  "chr5-7" ,  "chr5-8"  , "chr7-10",  "chr7-11" , "chr7-9"   ,"chr8-12" 
                                                ,"chr8-13" , "chr9-14" , "chr9-15" , "chr9-16" 
                                               , "chr10-17" , "chr11-18", "chr11-19" ,  "chr12-20", "chr13-21", "chr14-22", "chr15-23" ,"chr15-24" ,"chr15-25"
-                                             ,"chr15-26" ,"chr16-27", "chr16-28" ,"chr16-29", "chr17-30", "chr18-31", "chr19-32", "chr19-33", "chr20-34" ,"chr21-35" ,"chr22-36"
+                                             ,"chr15-26" ,"chr16-27", "chr16-28" ,"chr16-29", "chr17-30","chr17-31", "chr18-31", "chr19-32", "chr19-33", "chr20-34" ,"chr21-35" ,"chr22-36"
                                              ,"chr22-37" ,"chrX-38"  ,"chrX-39" ))
-
-ggplot(summarize)+geom_col(aes(cat,freq,fill=gene))+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+ggplot(summarize)+geom_col(aes(count,freq,fill=gene))+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
   labs(y="Number of events/library",x="Hotspots")
-ggplot(summarize)+geom_col(aes(chr,freq,fill=gene))+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
-  labs(y="Number of events",x="Hotspots")
+p=ggplot(summarize)+geom_col(aes(chr,freq,fill=gene))+theme(axis.text.x=element_text(angle=90,hjust=1,vjust=0.5))+
+  labs(y="# OF HOTSPOTS",x="CHROMOSOME")+
+  theme(axis.text.y = element_blank(),
+        axis.ticks.y = element_blank(),
+        axis.text.x  = element_blank(),
+        axis.ticks.x = element_blank(),
+        axis.title =element_text(size=28),
+        text = element_text(size=20),
+        legend.position = "none")
+
 summarize$chr <- as.factor(summarize$chr)
+
+summarize$libs=(summarize$freq/100) * summarize$n
 
 
 
@@ -408,4 +454,88 @@ ggplot()+ geom_bar(s,mapping=aes(chr,n,fill=type),stat="identity",position=  pos
 
 
 
+summarizeToPlot = filter(summarize,freq>0)
+summarizeToPlot$gene=as.factor(summarizeToPlot$gene)
+numOfLibsPerGene$gene<-as.character(numOfLibsPerGene$gene)
+numOfLibsPerGene[2,1]="BLM_RECQL5"
+merge =merge(summarizeToPlot,numOfLibsPerGene,by="gene")
+merge$n..=as.numeric(merge$n..)
+merge$norm = merge$freq/merge$n..
+merge$count <- as.factor(merge$count)
+
+merge$count=as.numeric(merge$count)
+merge = merge[order(merge$chr),]
+merge$count <- as.factor(merge$count)
+merge = filter(merge,count!="13" & count!= "27")
+p=ggplot(merge)+geom_point(aes(gene,count,size=norm,color=norm))+
+  labs(size="ALLELE FREQUENCY")+
+  theme(legend.position="top",
+        legend.text = element_text(size=10),
+        legend.title = element_text(size=10),
+        axis.text.x.bottom  = element_text(size=20),
+        axis.title.x=element_blank(),
+        axis.title =element_text(size=25),
+        text = element_text(size=18),
+        axis.text.x=element_text(angle=60,hjust=0.5,vjust=0.5))+
+  scale_size_continuous(range=c(1,7))+
+  guides(color=F)+
+  labs(y="INVERSIONS")
+
+p
+ggplot(summarizeToPlot)+geom_violin(aes(width))
+
+
+
+
+base_breaks <- function(n = 10){
+  function(x) {
+    axisTicks(log10(range(x, na.rm = TRUE)), log = TRUE, n = n)
+  }
+}
+
+library(scales)
+summarizeToPlot = filter(summarize,freq>0)
+summarizeToPlot$gene=as.factor(summarizeToPlot$gene)
+
+ggplot(summarizeToPlot)+geom_point(aes(gene,width,size=freq,color=freq))+scale_y_continuous(trans = 'log10',
+                                                                                            breaks = trans_breaks('log10', function(x) 10^x),
+                                                                                            labels = trans_format('log10', math_format(10^.x)))+
+  theme(legend.title = element_blank(),
+        legend.position="top",
+        axis.title.x=element_blank(),
+        axis.title =element_text(size=18),
+        text = element_text(size=18),
+        axis.text.x=element_text(angle=60,hjust=0.5,vjust=0.5))+
+  guides(color=F)+
+  labs(y="INVERSION WIDTH")
+
+p <- p +
+  theme(
+    panel.background = element_rect(fill = "transparent"), # bg of the panel
+    plot.background = element_rect(fill = "transparent", color = NA), # bg of the plot
+    panel.grid.major = element_blank(), # get rid of major grid
+    panel.grid.minor = element_blank(), # get rid of minor grid
+    legend.background = element_rect(fill = "transparent"), # get rid of legend bg
+    legend.box.background = element_rect(fill = "transparent") # get rid of legend panel bg
+  ) 
+ggsave(p, filename = "PLOTS/INVERSIONS.png",  bg = "transparent")
+
+
+round(summary$start)
+
+summary$start<-as.integer(summary$start)
+summary$end<-as.integer(summary$end)
+
+
+
+
+
+
+
+
+for (chr in c("chr1","chr2","chr3","chr4","chr5","chr6","chr7","chr8","chr9","chr10","chr11","chr12","chr13","chr14","chr15","chr16","chr17","chr18","chr19","chr20","chr21","chr22","chrX")){
+  print(chr)
+  plotBreakpointsPerChr(files2plot = list.files("DATA/rdata/",full.names = T),chromosomes = chr,plotspath = "ALL_CHROM_PLOTS/")
+}
+  
 
