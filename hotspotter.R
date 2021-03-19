@@ -314,7 +314,11 @@ master <- function(printing = F,normalize="By_Library",export = F){
   return(summary)
 }
 
+<<<<<<< HEAD
 
+=======
+master()
+>>>>>>> e55fb489fcb850654b438a64d9c648beecf5bad5
 
 
 
