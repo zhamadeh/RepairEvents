@@ -6,7 +6,8 @@ library(GenomicRanges)
 library(breakpointR)
 library(rtracklayer)
 library(doParallel)
-
+library(S4Vectors)
+library(BiocGenerics)
 ################################################
             # Core Functions #
 ################################################
@@ -167,8 +168,10 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
   # Also easier for dealing with IDs as factor
   hotspots$ID <- as.factor(hotspots$ID)
   
-  numOfLibsPerGene<-read.table("../SV_hotspot_backupCopies/Structural_Variant_Hotspotter-2/DATA/numOfLibsPerGene.txt",header=T)
-  
+  if (genomeInstability==T){
+    numOfLibsPerGene<-read.table("../SV_hotspot_backupCopies/Structural_Variant_Hotspotter-2/DATA/numOfLibsPerGene.txt",header=T)
+  }
+    
   # Initialize empty dataframe for summary
   summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c(),BLM=c(),RECQL5=c(),BLM_RECQL5=c(),WT=c())
   
@@ -203,9 +206,10 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
         }
         tmp[i,]$gene=id
       }
+      perc <- tmp %>% group_by(gene) %>% summarize(perc = round((n()/nrow(tmp))*100,digits = 1),n=n())
+      perc$resolution = mean(tmp$width)
     }
-    perc <- tmp %>% group_by(gene) %>% summarize(perc = round((n()/nrow(tmp))*100,digits = 1),n=n())
-    perc$resolution = mean(tmp$width)
+  
     
     
     j=round((length(levels(droplevels(tmp$ID)))/317)*100,2)
@@ -320,7 +324,7 @@ master <- function(printing = F,normalize="By_Library",export = F,genomeInstabil
 }
 
 
-master(printing = T,normalize=F,export = T,genomeInstability=F)
+
 
 
 

@@ -10,12 +10,12 @@ source("plotting.R")
        # Generating summary of hotspots #
 ################################################
 
-master <- function(printing = F,normalize="By_Library",export = F){
+master <- function(printing = F,normalize="By_Library",export = F,genomeInstability=T){
   breaks.all.files <- collectBreaksAllFiles(datapath="DATA/rdata/")
   
   hotspots <- breakpointHotspotter(breaks.all.files)
   
-  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = printing,normalize=normalize,export = export)
+  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = printing,normalize=normalize,export = export,genomeInstability = genomeInstability)
   
   message("\nI found ",nrow(summary), " hotspots.\n")
   message("\nThe average resolution is ", round(mean(summary$width),digits = -3),".\n")
@@ -25,8 +25,8 @@ master <- function(printing = F,normalize="By_Library",export = F){
   return(summary)
 }
 
-#Either run master or load 'hotspotsSummary.txt'
-master()
+
+master(printing = T,normalize=F,export = T,genomeInstability=F)
 
 summary = read.table("SUMMARY/hotspots.txt",header=T)
 densitySummary = read.table("SUMMARY/densityPvalueSummary.txt",header=T)
