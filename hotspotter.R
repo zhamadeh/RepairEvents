@@ -1,4 +1,4 @@
-################################################
+rdat################################################
               # Packages #
 ################################################
 library(tidyverse)
@@ -156,7 +156,7 @@ breakpointHotspotter <- function(breaks.all.files){
 
 
 
-savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,export=F,normalize=F,cfs=F){
+savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,export=F,normalize=F,cfs=F,genomeInstability=T){
   
   # Directory for creating file structure
   
@@ -184,22 +184,25 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     
     tmp$ID <- droplevels(tmp$ID) # Drop unused levles
     tmp$gene = NA
-    for (i in 1:length(tmp$ID)){
-      ID <- strsplit(as.character(tmp$ID[i]),split = "[-_]")[[1]]
-      for (j in ID){
-        if ("blm" %in% tolower(ID) ){
-          if ("recq5" %in% tolower(ID) ||"recql5" %in% tolower(ID) ){
-            id <- "BLM/RECQL5"
-          } else {
-            id <- "BLM"
-          }
-        } else if ("recq5" %in% tolower(ID) ||"recql5" %in% tolower(ID) ){
-          if (! "blm" %in% tolower(ID) ){
-            id <- "RECQL5"
-          }
-        } else {id <- "WT" }
+    
+    if (genomeInstability=T){
+      for (i in 1:length(tmp$ID)){
+        ID <- strsplit(as.character(tmp$ID[i]),split = "[-_]")[[1]]
+        for (j in ID){
+          if ("blm" %in% tolower(ID) ){
+            if ("recq5" %in% tolower(ID) ||"recql5" %in% tolower(ID) ){
+              id <- "BLM/RECQL5"
+            } else {
+              id <- "BLM"
+            }
+          } else if ("recq5" %in% tolower(ID) ||"recql5" %in% tolower(ID) ){
+            if (! "blm" %in% tolower(ID) ){
+              id <- "RECQL5"
+            }
+          } else {id <- "WT" }
+        }
+        tmp[i,]$gene=id
       }
-      tmp[i,]$gene=id
     }
     perc <- tmp %>% group_by(gene) %>% summarize(perc = round((n()/nrow(tmp))*100,digits = 1),n=n())
     perc$resolution = mean(tmp$width)
@@ -208,9 +211,10 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     j=round((length(levels(droplevels(tmp$ID)))/317)*100,2)
     message("Found hotspot #",level," on ", chr," in ", nrow(tmp)," cells (",j,"%)")
     
-    
-    if (perc[which.max(perc$perc),]$perc > 90){
-      message("This inversion is unique to ", perc[which.max(perc$perc),]$gene, " making up ",perc[which.max(perc$perc),]$perc, " of the libraries")
+    if (genomeInstability=T){
+      if (perc[which.max(perc$perc),]$perc > 90){
+        message("This inversion is unique to ", perc[which.max(perc$perc),]$gene, " making up ",perc[which.max(perc$perc),]$perc, " of the libraries")
+      }
     }
     
     
@@ -232,8 +236,9 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
       files2transfer=paste0("DATA/browserfiles/",tmp$ID,"_reads.bed.gz")
     }
 
-    
-    numLibs=tmp %>% group_by(gene)%>%summarize(numLibs=length(levels(droplevels(ID))))
+    if (genomeInstability=T){
+      numLibs=tmp %>% group_by(gene)%>%summarize(numLibs=length(levels(droplevels(ID))))
+    }
     
     if(normalize==FALSE){
       if ("BLM" %in% numLibs$gene){
@@ -304,7 +309,7 @@ master <- function(printing = F,normalize="By_Library",export = F){
   
   hotspots <- breakpointHotspotter(breaks.all.files)
   
-  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = printing,normalize=normalize,export = export)
+  summary <- savingAndPrinting(hotspots,hotpath="HOTSPOT_EVENTS/",printing = printing,normalize=normalize,export = export,genomeInstability = genomeInstability)
 
   message("\nI found ",nrow(summary), " hotspots.\n")
   message("\nThe average resolution is ", round(mean(summary$width),digits = -3),".\n")
@@ -314,11 +319,9 @@ master <- function(printing = F,normalize="By_Library",export = F){
   return(summary)
 }
 
-<<<<<<< HEAD
 
-=======
-master()
->>>>>>> e55fb489fcb850654b438a64d9c648beecf5bad5
+master(printing = T,normalize=F,export = T,genomeInstability=F)
+
 
 
 
