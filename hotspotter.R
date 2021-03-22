@@ -185,7 +185,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     tmp$ID <- droplevels(tmp$ID) # Drop unused levles
     tmp$gene = NA
     
-    if (genomeInstability=T){
+    if (genomeInstability==T){
       for (i in 1:length(tmp$ID)){
         ID <- strsplit(as.character(tmp$ID[i]),split = "[-_]")[[1]]
         for (j in ID){
@@ -211,7 +211,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     j=round((length(levels(droplevels(tmp$ID)))/317)*100,2)
     message("Found hotspot #",level," on ", chr," in ", nrow(tmp)," cells (",j,"%)")
     
-    if (genomeInstability=T){
+    if (genomeInstability==T){
       if (perc[which.max(perc$perc),]$perc > 90){
         message("This inversion is unique to ", perc[which.max(perc$perc),]$gene, " making up ",perc[which.max(perc$perc),]$perc, " of the libraries")
       }
@@ -236,7 +236,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
       files2transfer=paste0("DATA/browserfiles/",tmp$ID,"_reads.bed.gz")
     }
 
-    if (genomeInstability=T){
+    if (genomeInstability==T){
       numLibs=tmp %>% group_by(gene)%>%summarize(numLibs=length(levels(droplevels(ID))))
     }
     
