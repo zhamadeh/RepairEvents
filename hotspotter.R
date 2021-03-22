@@ -26,7 +26,7 @@ collectBreaksAllFiles <- function(datapath="DATA/rdata/"){
     n=n+1
     data <- get(load(file))[c('breaks', 'confint','ID')]
     data$breaks$ID <- data$ID
-    summaryBreaks[[basename(file)]] <- summarizeBreaks(data)
+    summaryBreaks[[basename(file)]] <- breakpointR::summarizeBreaks(data)
     breakpoints <- data$breaks
     breaks.confint <- data$confint
     if (length(breakpoints)) {
