@@ -304,7 +304,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
         # Running Core Functions #
 ################################################
 
-master <- function(printing = F,normalize="By_Library",export = F){
+master <- function(printing = F,normalize="By_Library",export = F,genomeInstability=T){
   breaks.all.files <- collectBreaksAllFiles(datapath="DATA/rdata/")
   
   hotspots <- breakpointHotspotter(breaks.all.files)
