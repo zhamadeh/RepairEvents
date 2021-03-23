@@ -173,8 +173,12 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
   }
     
   # Initialize empty dataframe for summary
-  summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c(),BLM=c(),RECQL5=c(),BLM_RECQL5=c(),WT=c())
+  if (genomeInstability){
+    summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c(),BLM=c(),RECQL5=c(),BLM_RECQL5=c(),WT=c())
+  } else {
+    summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c())
   
+  }
   # Iterate through each level of count (unique inversion) and 1) filter 2) summarize 3) save 4) plot
   hotspots$count<-as.factor(hotspots$count)
   
@@ -182,7 +186,7 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     message("Level: ",level)
     
     # 1) FILTER
-    tmp <- filter(hotspots, count==level)
+    tmp <- dplyr::filter(hotspots, count==level)
     chr = as.character(tmp[1,1]) # Set chromosome
     
     tmp$ID <- droplevels(tmp$ID) # Drop unused levles
@@ -246,49 +250,52 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
       numLibs=tmp %>% group_by(gene)%>%summarize(numLibs=length(levels(droplevels(ID))))
     }
     
-    if(normalize==FALSE){
-      if ("BLM" %in% numLibs$gene){
-        BLM=as.numeric((numLibs[numLibs$gene=="BLM",2]))
-      } else { BLM=0 }
-      if ("RECQL5" %in% numLibs$gene){
-        RECQL5=as.numeric((numLibs[numLibs$gene=="RECQL5",2]))
-      } else { RECQL5=0 }
-      if ("BLM/RECQL5" %in% numLibs$gene){
-        BLM_RECQL5=as.numeric((numLibs[numLibs$gene=="BLM/RECQL5",2]))
-      } else { BLM_RECQL5=0 }
-      if ("WT" %in% numLibs$gene){
-        WT=as.numeric((numLibs[numLibs$gene=="WT",2]))
-      } else { WT=0 }
-    } else if(normalize=="By_Library"){
-      if ("BLM" %in% numLibs$gene){
-        BLM=as.numeric((numLibs[numLibs$gene=="BLM",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="BLM",2])
-      } else { BLM=0 }
-      if ("RECQL5" %in% numLibs$gene){
-        RECQL5=as.numeric((numLibs[numLibs$gene=="RECQL5",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="RECQL5",2])
-      } else { RECQL5=0 }
-      if ("BLM/RECQL5" %in% numLibs$gene){
-        BLM_RECQL5=as.numeric((numLibs[numLibs$gene=="BLM/RECQL5",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="BLM/RECQL5",2])
-      } else { BLM_RECQL5=0 }
-      if ("WT" %in% numLibs$gene){
-        WT=as.numeric((numLibs[numLibs$gene=="WT",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="WT",2])
-      } else { WT=0 }
-    } else  if (normalize=="to_100"){
-      if ("BLM" %in% perc$gene){
-        BLM=as.numeric((perc[perc$gene=="BLM",2]))
-      } else { BLM=0 }
-      if ("RECQL5" %in% perc$gene){
-        RECQL5=as.numeric((perc[perc$gene=="RECQL5",2]))
-      } else { RECQL5=0 }
-      if ("BLM/RECQL5" %in% perc$gene){
-        BLM_RECQL5=as.numeric((perc[perc$gene=="BLM/RECQL5",2]))
-      } else { BLM_RECQL5=0 }
-      if ("WT" %in% perc$gene){
-        WT=as.numeric((perc[perc$gene=="WT",2]))
-      } else { WT=0 }
+    if(genomeInstability){
+      if(normalize==FALSE){
+        if ("BLM" %in% numLibs$gene){
+          BLM=as.numeric((numLibs[numLibs$gene=="BLM",2]))
+        } else { BLM=0 }
+        if ("RECQL5" %in% numLibs$gene){
+          RECQL5=as.numeric((numLibs[numLibs$gene=="RECQL5",2]))
+        } else { RECQL5=0 }
+        if ("BLM/RECQL5" %in% numLibs$gene){
+          BLM_RECQL5=as.numeric((numLibs[numLibs$gene=="BLM/RECQL5",2]))
+        } else { BLM_RECQL5=0 }
+        if ("WT" %in% numLibs$gene){
+          WT=as.numeric((numLibs[numLibs$gene=="WT",2]))
+        } else { WT=0 }
+      } else if(normalize=="By_Library"){
+        if ("BLM" %in% numLibs$gene){
+          BLM=as.numeric((numLibs[numLibs$gene=="BLM",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="BLM",2])
+        } else { BLM=0 }
+        if ("RECQL5" %in% numLibs$gene){
+          RECQL5=as.numeric((numLibs[numLibs$gene=="RECQL5",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="RECQL5",2])
+        } else { RECQL5=0 }
+        if ("BLM/RECQL5" %in% numLibs$gene){
+          BLM_RECQL5=as.numeric((numLibs[numLibs$gene=="BLM/RECQL5",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="BLM/RECQL5",2])
+        } else { BLM_RECQL5=0 }
+        if ("WT" %in% numLibs$gene){
+          WT=as.numeric((numLibs[numLibs$gene=="WT",2])/numOfLibsPerGene[numOfLibsPerGene$gene=="WT",2])
+        } else { WT=0 }
+      } else  if (normalize=="to_100"){
+        if ("BLM" %in% perc$gene){
+          BLM=as.numeric((perc[perc$gene=="BLM",2]))
+        } else { BLM=0 }
+        if ("RECQL5" %in% perc$gene){
+          RECQL5=as.numeric((perc[perc$gene=="RECQL5",2]))
+        } else { RECQL5=0 }
+        if ("BLM/RECQL5" %in% perc$gene){
+          BLM_RECQL5=as.numeric((perc[perc$gene=="BLM/RECQL5",2]))
+        } else { BLM_RECQL5=0 }
+        if ("WT" %in% perc$gene){
+          WT=as.numeric((perc[perc$gene=="WT",2]))
+        } else { WT=0 }
+      }
+      row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=length(levels(droplevels(tmp$ID))),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
     }
+    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=length(levels(droplevels(tmp$ID))),perc=j)
     
     
-    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=length(levels(droplevels(tmp$ID))),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
     summary <- rbind(summary,row)
     
     if (printing){
