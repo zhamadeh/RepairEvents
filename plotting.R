@@ -9,6 +9,9 @@ library(scales)
           # Plotting #
 ################################################
 
+summary = read.table("SUMMARY/hotspots.txt",header=T)
+densitySummary = read.table("SUMMARY/densityPvalueSummary.txt",header=T)
+
 ################################################
 #PLOTTING WITH TRANSPARENT BACKGROUND
 ################################################
