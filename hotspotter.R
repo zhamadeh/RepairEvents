@@ -168,17 +168,16 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
   # Also easier for dealing with IDs as factor
   hotspots$ID <- as.factor(hotspots$ID)
   
-  if (genomeInstability==T){
-    numOfLibsPerGene<-read.table("../SV_hotspot_backupCopies/Structural_Variant_Hotspotter-2/DATA/numOfLibsPerGene.txt",header=T)
-  }
-    
   # Initialize empty dataframe for summary
-  if (genomeInstability){
+  if (genomeInstability==T){ 
+    numOfLibsPerGene<-read.table("../SV_hotspot_backupCopies/Structural_Variant_Hotspotter-2/DATA/numOfLibsPerGene.txt",header=T) 
     summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c(),BLM=c(),RECQL5=c(),BLM_RECQL5=c(),WT=c())
   } else {
     summary <- data.frame(chr=c(),start= c(),end=c(),count=c(), width=c(),n=c(),perc=c())
-  
   }
+  
+  numOfLibs = length(list.files("DATA/rdata/"))
+    
   # Iterate through each level of count (unique inversion) and 1) filter 2) summarize 3) save 4) plot
   hotspots$count<-as.factor(hotspots$count)
   
@@ -190,9 +189,16 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     chr = as.character(tmp[1,1]) # Set chromosome
     
     tmp$ID <- droplevels(tmp$ID) # Drop unused levles
-    tmp$gene = NA
+    
+    
+    datapath=paste0(hotpath,"/",chr,"-",level,"/")
+    if (!file.exists(datapath) ) { dir.create(datapath)}
+    readsdatapath=paste0(hotpath,"/",chr,"-",level,"/reads/")
+    if (!file.exists(readsdatapath) ) { dir.create(readsdatapath)}
+    
     
     if (genomeInstability==T){
+      tmp$gene = NA
       for (i in 1:length(tmp$ID)){
         ID <- strsplit(as.character(tmp$ID[i]),split = "[-_]")[[1]]
         for (j in ID){
@@ -212,32 +218,24 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
       }
       perc <- tmp %>% group_by(gene) %>% summarize(perc = round((n()/nrow(tmp))*100,digits = 1),n=n())
       perc$resolution = mean(tmp$width)
-    }
-  
-    
-    
-    j=round((length(levels(droplevels(tmp$ID)))/317)*100,2)
-    message("Found hotspot #",level," on ", chr," in ", nrow(tmp)," cells (",j,"%)")
-    
-    if (genomeInstability==T){
+      
       if (perc[which.max(perc$perc),]$perc > 90){
         message("This inversion is unique to ", perc[which.max(perc$perc),]$gene, " making up ",perc[which.max(perc$perc),]$perc, " of the libraries")
       }
+      
+      write.table(as.data.frame(perc),paste0(datapath,"genotype.txt"),row.names = F,col.names = T,quote = F,sep="\t")
     }
+  
+
+    numOfLibsInvolved=length(levels(droplevels(tmp$ID)))
+    percOfLibsInvolved=round((numOfLibsInvolved/numOfLibs)*100,2)
+
+    message("Found hotspot #",level," on ", chr," in ", numOfLibsInvolved," cells (",percOfLibsInvolved,"%)")
     
     
-    datapath=paste0(hotpath,"/",chr,"-",j,"/")
-    if (!file.exists(datapath) ) { dir.create(datapath)}
-    readsdatapath=paste0(hotpath,"/",chr,"-",j,"/reads/")
-    if (!file.exists(readsdatapath) ) { dir.create(readsdatapath)}
-    
+ 
     if (export){
-      bed=tmp
-      export(bed,paste0(datapath,"breakpoints.bed"),format = "gff3")
-      if (genomeInstability){
-        write.table(as.data.frame(perc),paste0(datapath,"genotype.txt"),row.names = F,col.names = T,quote = F,sep="\t")
-      }
-      export(bed,paste0(datapath,"breakpoints.bed"),format = "bed")
+      export(tmp,paste0(datapath,"breakpoints.bed"),format = "bed")
     }
     
     if (length(tmp$ID)>25){
@@ -246,9 +244,11 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
       files2transfer=paste0("DATA/browserfiles/",tmp$ID,"_reads.bed.gz")
     }
 
-    if (genomeInstability==T){
+    if (genomeInstability){
       numLibs=tmp %>% group_by(gene)%>%summarize(numLibs=length(levels(droplevels(ID))))
     }
+    
+    
     
     if(genomeInstability){
       if(normalize==FALSE){
@@ -291,22 +291,11 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
           WT=as.numeric((perc[perc$gene=="WT",2]))
         } else { WT=0 }
       }
-      row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=length(levels(droplevels(tmp$ID))),perc=j,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
+      row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=numOfLibsInvolved,perc=percOfLibsInvolved,BLM=BLM,RECQL5=RECQL5,BLM_RECQL5=BLM_RECQL5,WT=WT)
     }
-    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=length(levels(droplevels(tmp$ID))),perc=j)
-    
+    row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=numOfLibsInvolved,perc=percOfLibsInvolved)
     
     summary <- rbind(summary,row)
-    
-    if (printing){
-      file.copy(files2transfer,readsdatapath)
-      files2plot=paste0("DATA/rdata/",levels(tmp$ID),".RData")
-      plotBreakpointsPerChr(files2plot,plotspath = datapath,chromosomes = c(chr))
-    }
-    if (cfs){
-      file.copy(paste0("DATA/fragile_site_bed/",chr,"_fragile_site.bed"),datapath)
-      
-    }
   }
   return(summary)
 }

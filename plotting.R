@@ -50,7 +50,7 @@ densityALL = ggplot(densitySummary)+geom_point(aes(mp_Mb,ds,color=type),size=1)+
   labs(y="DENSITY",x="CHROMOSOME POSITION")+
   guides(color = guide_legend(override.aes = list(size=10)))
 
-densityChr1 = ggplot(filter(densitySummary,chr=="chr1"))+geom_line(aes(mp_Mb,ds,color=type),size=4)+facet_wrap(~chr,scales="free")+
+densityChr1 = ggplot(dplyr::filter(densitySummary,chr=="chr1"))+geom_line(aes(mp_Mb,ds,color=type),size=4)+facet_wrap(~chr,scales="free")+
   theme(axis.text.y = element_blank(),
         axis.ticks.y = element_blank(),
         legend.title = element_blank(),

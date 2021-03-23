@@ -26,7 +26,7 @@ master <- function(printing = F,normalize="By_Library",export = F,genomeInstabil
 }
 
 
-master(printing = T,normalize=F,export = T,genomeInstability=F)
+master(printing = F,normalize=F,export = F,genomeInstability=F)
 
 summary = read.table("SUMMARY/hotspots.txt",header=T)
 densitySummary = read.table("SUMMARY/densityPvalueSummary.txt",header=T)
