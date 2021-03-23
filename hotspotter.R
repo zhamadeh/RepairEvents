@@ -230,7 +230,9 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     if (export){
       bed=tmp
       export(bed,paste0(datapath,"breakpoints.bed"),format = "gff3")
-      write.table(as.data.frame(perc),paste0(datapath,"genotype.txt"),row.names = F,col.names = T,quote = F,sep="\t")
+      if (genomeInstability){
+        write.table(as.data.frame(perc),paste0(datapath,"genotype.txt"),row.names = F,col.names = T,quote = F,sep="\t")
+      }
       export(bed,paste0(datapath,"breakpoints.bed"),format = "bed")
     }
     
