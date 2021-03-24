@@ -20,13 +20,13 @@ master <- function(printing = F,normalize="By_Library",export = F,genomeInstabil
   message("\nI found ",nrow(summary), " hotspots.\n")
   message("\nThe average resolution is ", round(mean(summary$width),digits = -3),".\n")
   
-  write.table(summary,"SUMMARY/hotspots.txt",col.names = T,row.names = F, quote = F,sep="\t")
+  write.table(summary,"SUMMARY/hotspots-mar18.txt",col.names = T,row.names = F, quote = F,sep="\t")
   
   return(summary)
 }
 
 
-master(printing = F,normalize=F,export = F,genomeInstability=F)
+master(printing = T,normalize=F,export = T,genomeInstability=F)
 
 summary = read.table("SUMMARY/hotspots.txt",header=T)
 densitySummary = read.table("SUMMARY/densityPvalueSummary.txt",header=T)
