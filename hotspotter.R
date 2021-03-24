@@ -296,6 +296,13 @@ savingAndPrinting <- function(hotspots,hotpath="HOTSPOT_EVENTS",printing=F,expor
     row <- data.frame(chr=chr,start= mean(tmp$start),end=mean(tmp$end),count=tmp$count[1], width=mean(tmp$width),n=numOfLibsInvolved,perc=percOfLibsInvolved)
     
     summary <- rbind(summary,row)
+    
+    if (printing){
+      file.copy(files2transfer,readsdatapath)
+      files2plot=paste0("DATA/rdata/",levels(tmp$ID),".RData")
+      plotBreakpointsPerChr(files2plot,plotspath = datapath,chromosomes = c(chr))
+    }
+    if (cfs){ file.copy(paste0("DATA/fragile_site_bed/",chr,"_fragile_site.bed"),datapath)}
   }
   return(summary)
 }
